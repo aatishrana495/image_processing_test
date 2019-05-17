@@ -194,8 +194,10 @@ void img_proc_gate()
         else if(int(z.x)==midx)
         minRect[i].points(B);
       }
+      Point2f Cent((midx+minx)/2,miny);
       Point2f k(B[3].x,A[3].y);
       rectangle(initial_frame,A[1],k,Scalar(0,255,0),1,8);
+      circle(initial_frame,Cent,1,(255,0,0),-1,8);
       show();
 
 
