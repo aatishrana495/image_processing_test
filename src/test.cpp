@@ -142,7 +142,7 @@ void img_proc_path() {
     std::cout << "path angle is " << path_angle << std::endl;
   }
 }
-void img_proc_gate() { std::cout << "Processing gate " << std::endl; }
+void img_proc_gate() { std::cout << "VAibhav " << std::endl; }
 void img_proc_buoy() { std::cout << "Processing buoy " << std::endl; }
 void img_proc_bins() { std::cout << "Processing bins " << std::endl; }
 void img_proc_heart() { std::cout << "Processing heart " << std::endl; }
