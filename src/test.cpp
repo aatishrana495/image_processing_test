@@ -2,6 +2,8 @@
 #include <limits.h>
 #include <opencv2/opencv.hpp>
 #include <string>
+using namespace std;
+using namespace cv;
 
 #define PI 3.14159265
 
@@ -10,10 +12,18 @@ using namespace cv;
 Mat initial_frame, hsv_frame, gray_frame, canny_frame, out_frame;
 VideoCapture cap;
 
-int thresh_l_R = 0, thresh_l_G = 0, thresh_h_R = 255;
-int thresh_l_B = 0, thresh_h_B = 255, thresh_h_G = 255;
-int canny_low_thresh = 0, canny_ratio = 3, canny_kernel_size = 3;
+int thresh_l_R = 44, thresh_l_G = 132, thresh_h_R = 163;
+int thresh_l_B = 0, thresh_h_B = 23, thresh_h_G = 255;
+int canny_low_thresh = 250, canny_ratio = 3, canny_kernel_size = 3;
 int hl_thresh_detect = 50, hl_min_line_length = 50, hl_max_line_gap = 10;
+int erosion_size=1;
+Mat element = getStructuringElement( 0,Size( 2*erosion_size + 1, 2*erosion_size+1 ),Point( erosion_size, erosion_size ) );
+vector<vector<Point> > contours;
+vector<Vec4i> hierarchy;
+vector<RotatedRect> minRect(10);
+int minx=INT_MAX,midx=INT_MAX,miny=INT_MIN;
+Point2f A[4],B[4],P[10];
+
 
 float path_angle;
 
@@ -70,8 +80,8 @@ void op_image(std::string s) {
       return;
     }
     //----- Image Processing ---------
-    // img_proc_gate();
-    img_proc_path();
+    //img_proc_path();
+    img_proc_gate();
     // img_proc_buoy();
     // img_proc_bins();
     // img_proc_heart();
@@ -112,6 +122,7 @@ void img_proc_path() {
   cvtColor(initial_frame, hsv_frame, CV_BGR2HSV);
   inRange(hsv_frame, Scalar(thresh_l_B, thresh_l_G, thresh_l_R),
           Scalar(thresh_h_B, thresh_h_G, thresh_h_R), gray_frame);
+  //erode(gray_frame,gray_frame,element);
   Canny(gray_frame, canny_frame, canny_low_thresh,
         canny_low_thresh * canny_ratio, canny_kernel_size);
   HoughLinesP(canny_frame, lines, 1, CV_PI / 180, hl_thresh_detect,
@@ -140,7 +151,59 @@ void img_proc_path() {
   }
   std::cout << "path angle is " << path_angle << std::endl;
 }
-void img_proc_gate() { std::cout << "Processing gate " << std::endl; }
+void img_proc_gate()
+{
+   thresh_l_R = 44, thresh_l_G = 132, thresh_h_R = 163;
+   thresh_l_B = 0, thresh_h_B = 23, thresh_h_G = 255;
+   canny_low_thresh = 250, canny_ratio = 3, canny_kernel_size = 3;
+   erosion_size=1;
+
+  cvtColor(initial_frame, hsv_frame, CV_BGR2HSV);
+  inRange(hsv_frame, Scalar(thresh_l_B, thresh_l_G, thresh_l_R),
+          Scalar(thresh_h_B, thresh_h_G, thresh_h_R), gray_frame);
+  erode(gray_frame,gray_frame,element);
+  Canny(gray_frame, canny_frame, canny_low_thresh,
+        canny_low_thresh * canny_ratio, canny_kernel_size);
+  std::cout << "Processing gate " << std::endl;
+  findContours( canny_frame, contours, hierarchy,RETR_CCOMP, CHAIN_APPROX_SIMPLE );
+  for( size_t i = 0; i < contours.size(); i++ )
+       {
+          cout<<contours.size()<<endl;
+          minRect[i] = minAreaRect( Mat(contours[i]) );
+          P[i]=minRect[i].center;
+      }
+      for(size_t i=0;i<contours.size();i++)
+      {
+        cout<<P[i]<<endl;
+        if(int(P[i].x)<minx)
+        {
+          midx=minx;
+          minx=int(P[i].x);
+        }
+        else if(int(P[i].x)<midx && int(P[i].x)!=minx)
+        midx=int(P[i].x);
+        if(int(P[i].y)>miny)
+        miny=int(P[i].y);
+      }
+      for(size_t i=0;i<contours.size();i++)
+      {
+        Point2f z;
+        z=minRect[i].center;
+        if(int(z.x)==minx)
+        minRect[i].points(A);
+        else if(int(z.x)==midx)
+        minRect[i].points(B);
+      }
+      Point2f Cent((midx+minx)/2,miny);
+      Point2f k(B[3].x,A[3].y);
+      rectangle(initial_frame,A[1],k,Scalar(0,255,0),1,8);
+      circle(initial_frame,Cent,1,(255,0,0),-1,8);
+      show();
+
+
+
+
+}
 void img_proc_buoy() { std::cout << "Processing buoy " << std::endl; }
 void img_proc_bins() { std::cout << "Processing bins " << std::endl; }
 void img_proc_heart() { std::cout << "Processing heart " << std::endl; }
