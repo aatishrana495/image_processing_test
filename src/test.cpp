@@ -61,8 +61,6 @@ int main(int argc, char **argv) {
 }
 
 void op_image(std::string s) {
-  s = "/home/kookies/RoboSub 2019/robosub "
-      "tasks/Path/Bottom_screenshot_13.05.2019.png";
 
   for (;;) {
     initial_frame = imread(s, CV_LOAD_IMAGE_COLOR);
@@ -134,13 +132,13 @@ void img_proc_path() {
         }
       }
     }
-    if (a * b != -1) {
-      path_angle = atan(abs((b - a) / (1 + a * b))) * 180 / PI;
-    } else {
-      path_angle = 90;
-    }
-    std::cout << "path angle is " << path_angle << std::endl;
   }
+  if (a * b != -1) {
+    path_angle = atan(abs((b - a) / (1 + a * b))) * 180 / PI;
+  } else {
+    path_angle = 90;
+  }
+  std::cout << "path angle is " << path_angle << std::endl;
 }
 void img_proc_gate() { std::cout << "Processing gate " << std::endl; }
 void img_proc_buoy() { std::cout << "Processing buoy " << std::endl; }
