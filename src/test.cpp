@@ -7,13 +7,17 @@
 
 using namespace cv;
 
-Mat initial_frame, hsv_frame, gray_frame, canny_frame, out_frame;
+Mat initial_frame, hsv_frame, gauss_frame, erosion_frame, dilation_frame,
+    gray_frame, gray_frame_1, canny_frame, out_frame;
+Mat element;
 VideoCapture cap;
 
-int thresh_l_R = 0, thresh_l_G = 0, thresh_h_R = 255;
-int thresh_l_B = 0, thresh_h_B = 255, thresh_h_G = 255;
+int thresh_l_R = 0, thresh_l_G = 112, thresh_h_R = 255;
+int thresh_l_B = 0, thresh_h_B = 51, thresh_h_G = 255;
 int canny_low_thresh = 0, canny_ratio = 3, canny_kernel_size = 3;
 int hl_thresh_detect = 50, hl_min_line_length = 50, hl_max_line_gap = 10;
+
+int x, y, k;
 
 float path_angle;
 
@@ -115,64 +119,69 @@ void op_video(std::string s, int obj) {
 
     //----- Image Processing ---------
     switch (obj) {
-    case '1':
+    case 1:
       img_proc_gate();
       break;
-    case '2':
+    case 2:
       img_proc_path();
-    case '3':
+      break;
+    case 3:
       img_proc_buoy();
       break;
-    case '4':
+    case 4:
       img_proc_bins();
       break;
-    case '5':
+    case 5:
       img_proc_heart();
       break;
-    case '6':
+    case 6:
       img_proc_coffin();
       break;
     }
     //-----End IMage Processing ----------
     show();
-    if (waitKey(30) >= 0)
+    if (waitKey(500) >= 0)
       break;
   }
 }
 
 void img_proc_path() {
 
+  element = getStructuringElement(MORPH_RECT, Size(3, 3), Point(0, 0));
   cvtColor(initial_frame, hsv_frame, CV_BGR2HSV);
-  inRange(hsv_frame, Scalar(thresh_l_B, thresh_l_G, thresh_l_R),
+  erode(hsv_frame, erosion_frame, element);
+  dilate(erosion_frame, dilation_frame, element);
+  GaussianBlur(dilation_frame, gauss_frame, Size(3, 3), 0, 0);
+  inRange(gauss_frame, Scalar(thresh_l_B, thresh_l_G, thresh_l_R),
           Scalar(thresh_h_B, thresh_h_G, thresh_h_R), gray_frame);
-  Canny(gray_frame, canny_frame, canny_low_thresh,
-        canny_low_thresh * canny_ratio, canny_kernel_size);
-  HoughLinesP(canny_frame, lines, 1, CV_PI / 180, hl_thresh_detect,
-              hl_min_line_length, hl_max_line_gap);
-  std::cout << lines.size() << std::endl;
-  float slope[lines.size()], a, b;
-  for (size_t i = 0; i < lines.size(); i++) {
-    Vec4i l = lines[i];
-    line(initial_frame, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 255, 0),
-         3, CV_AA);
-    if (l[4] != l[2]) {
-      slope[i] = (l[3] - l[1]) / (l[4] - l[2]);
-      if (i == 1) {
-        a = slope[i];
-      } else {
-        if (slope[i] > a + 5 || slope[i] < a - 5) {
-          b = slope[i];
+  /*
+    for (int i1 = 0; i1 < gray_frame.rows; i1++) {
+      x = y = k = 0;
+      for (int j1 = 0; j1 < gray_frame.cols; j1++) {
+
+        if (gray_frame.at<uchar>(i1, j1) > 0) {
+          y += i1;
+          x += j1;
+          k++;
         }
       }
-    }
-  }
-  if (a * b != -1) {
-    path_angle = atan(abs((b - a) / (1 + a * b))) * 180 / PI;
-  } else {
-    path_angle = 90;
-  }
-  std::cout << "path angle is " << path_angle << std::endl;
+      double limit = 0.01 * gray_frame.cols * gray_frame.rows;
+
+      if (k >= limit) {
+        x /= k;
+        y /= k;
+      }
+      circle(initial_frame, Point(x, y), 3, Scalar(255, 0, 0), 1, 8);
+    }*/
+
+  Canny(gray_frame, canny_frame, canny_low_thresh,
+        canny_low_thresh * canny_ratio, canny_kernel_size);
+
+  lines.clear();
+  HoughLinesP(canny_frame, lines, 1, CV_PI / 180, hl_thresh_detect,
+              hl_min_line_length, hl_max_line_gap);
 }
+
 void img_proc_gate() { std::cout << "Processing gate " << std::endl; }
 void img_proc_buoy() { std::cout << "Processing buoy " << std::endl; }
 void img_proc_bins() { std::cout << "Processing bins " << std::endl; }
@@ -183,5 +192,5 @@ void show() {
   imshow("Input Frame", initial_frame);
   imshow("HSV image", hsv_frame);
   imshow("Gray image", gray_frame);
-  imshow("Output image", canny_frame);
+  // imshow("Output image", canny_frame);
 }
